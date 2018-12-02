@@ -1,0 +1,22 @@
+# depslib dependency file v1.0
+1536817085 source:c:\users\89860\desktop\资料内容\闲置物品管理\main.cpp
+	<iostream>
+	<stdlib.h>
+	<windows.h>
+	"mmsystem.h"
+	<cstdio>
+	<cstring>
+	<string>
+	<conio.h>
+	"mysql_api.h"
+	<regex>
+	<sstream>
+	<time.h>
+	<fstream>
+	<map>
+
+1536386475 c:\users\89860\desktop\资料内容\闲置物品管理\mysql_api.h
+	<winsock.h>
+	<mysql.h>
+	<WinSock2.h>
+

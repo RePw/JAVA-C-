@@ -1,0 +1,10 @@
+# depslib dependency file v1.0
+1541238196 source:c:\users\89860\desktop\资料内容\运算测试\main.cpp
+	<iostream>
+	<windows.h>
+	<stdlib.h>
+	<ctime>
+	<fstream>
+	<iomanip>
+	<cstdio>
+
