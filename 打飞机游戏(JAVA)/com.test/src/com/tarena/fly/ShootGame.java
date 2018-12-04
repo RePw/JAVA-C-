@@ -10,15 +10,17 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.awt.image.BufferedImage;
+import java.lang.reflect.Array;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageTypeSpecifier;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 public class ShootGame extends JPanel {
-	public static final int WIDTH = 400; // 面板宽
-	public static final int HEIGHT = 754; // 面板高
+	public static final int WIDTH = 600; // 面板宽
+	public static final int HEIGHT = 900; // 面板高
 	/** 游戏的当前状态: START RUNNING PAUSE GAME_OVER */
 	private int state;
 	private static final int START = 0;
@@ -26,6 +28,8 @@ public class ShootGame extends JPanel {
 	private static final int PAUSE = 2;
 	private static final int GAME_OVER = 3;
 
+	public int[] flag = new int[40];
+	
 	private int score = 0; // 得分
 	private Timer timer; // 定时器
 	private int intervel = 1000 / 100; // 时间间隔(毫秒)
@@ -39,24 +43,41 @@ public class ShootGame extends JPanel {
 	public static BufferedImage hero1;
 	public static BufferedImage pause;
 	public static BufferedImage gameover;
+	public static BufferedImage boss;
+	public static BufferedImage bossShots;
+	public static BufferedImage bossKilled10;
+	public static BufferedImage bullet2;
+	public static BufferedImage heroKing;
+	public static BufferedImage boosKING_;
+	
 
 	private FlyingObject[] flyings = {}; // 敌机数组
 	private Bullet[] bullets = {}; // 子弹数组
+	private Airplane[] bossAirplane = {};
 	private Hero hero = new Hero(); // 英雄机
+	public Hero hhHero = new Hero();
+	private Boss boss_ = new Boss();
+	private BossKING bossKING = new BossKING();
+	public static int bScore = 500;
+	public static int kScore = 7000;
 
 	static { // 静态代码块，初始化图片资源
-		try {
+		try { 
 			background = ImageIO.read(ShootGame.class.getResource("background.png"));
-			start = ImageIO.read(ShootGame.class.getResource("start.png"));
-			airplane = ImageIO
-					.read(ShootGame.class.getResource("airplane.png"));
-			bee = ImageIO.read(ShootGame.class.getResource("bee.png"));
+			start = ImageIO.read(ShootGame.class.getResource("begin.png"));
+			airplane = ImageIO.read(ShootGame.class.getResource("airplane.png"));
+			bee = ImageIO.read(ShootGame.class.getResource("reward.png"));
 			bullet = ImageIO.read(ShootGame.class.getResource("bullet.png"));
-			hero0 = ImageIO.read(ShootGame.class.getResource("hero0.png"));
-			hero1 = ImageIO.read(ShootGame.class.getResource("hero1.png"));
+			hero0 = ImageIO.read(ShootGame.class.getResource("hero.png"));
+			hero1 = ImageIO.read(ShootGame.class.getResource("hero.png"));
 			pause = ImageIO.read(ShootGame.class.getResource("pause.png"));
-			gameover = ImageIO
-					.read(ShootGame.class.getResource("gameover.png"));
+			gameover = ImageIO.read(ShootGame.class.getResource("Last.png"));
+			boss = ImageIO.read(ShootGame.class.getResource("boss.png"));
+			bossShots = ImageIO.read(ShootGame.class.getResource("bossbullet.png"));
+			bossKilled10 = ImageIO.read(ShootGame.class.getResource("bosskilled.png"));
+			bullet2 = ImageIO.read(ShootGame.class.getResource("herobullet.png"));
+			heroKing = ImageIO.read(ShootGame.class.getResource("heroking.png"));
+			boosKING_= ImageIO.read(ShootGame.class.getResource("bossKING.png"));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -71,19 +92,58 @@ public class ShootGame extends JPanel {
 		paintFlyingObjects(g); // 画飞行物
 		paintScore(g); // 画分数
 		paintState(g); // 画游戏状态
+		paintBoss(g);
+		paintBossKilled(g);
+		paintBoss1(g);
+		paintKingBoss(g);
+		paintBoss2(g);
+	}
+
+
+	public void paintBossKilled(Graphics g) {
+		int bossIndex = -1;
+		if(boss_.life<=0)
+		{
+			for(int i = 0;i<flag.length;i++)
+			{
+				if(flag[i] == 1)
+				{
+					bossIndex = i;
+					flag[i] = 0;
+					break;
+				}
+			}
+			if(bossIndex!=-1)
+			g.drawImage(bossKilled10, boss_.getX(), boss_.getY(), null);
+		}
+	}
+	
+	
+	public void paintBoss(Graphics g) {
+		if (score >= bScore && boss_.life > 0)
+			g.drawImage(boss_.getImage(), boss_.getX(), boss_.getY(), null);
+	}
+	
+	public void paintKingBoss(Graphics g) {
+		if(score >=kScore && bossKING.life > 0)
+			g.drawImage(bossKING.getImage(), bossKING.getX(), bossKING.getY(), null);
 	}
 
 	/** 画英雄机 */
 	public void paintHero(Graphics g) {
+		if(score<bScore)
 		g.drawImage(hero.getImage(), hero.getX(), hero.getY(), null);
+		else {
+			hero.setImage(heroKing);
+			g.drawImage(hero.getImage(), hero.getX(), hero.getY(), null);
+		}
 	}
 
 	/** 画子弹 */
 	public void paintBullets(Graphics g) {
 		for (int i = 0; i < bullets.length; i++) {
 			Bullet b = bullets[i];
-			g.drawImage(b.getImage(), b.getX() - b.getWidth() / 2, b.getY(),
-					null);
+			g.drawImage(b.getImage(), b.getX() - b.getWidth() / 2, b.getY(), null);
 		}
 	}
 
@@ -95,18 +155,40 @@ public class ShootGame extends JPanel {
 		}
 	}
 
-	
-	
 	/** 画分数 */
 	public void paintScore(Graphics g) {
 		int x = 10; // x坐标
 		int y = 25; // y坐标
 		Font font = new Font(Font.SANS_SERIF, Font.BOLD, 22); // 字体
-		g.setColor(new Color(0xFF0000));
+		g.setColor(new Color(0x00FFFF));
 		g.setFont(font); // 设置字体
 		g.drawString("SCORE:" + score, x, y); // 画分数
-		y=y+20; // y坐标增20
+		y = y + 20; // y坐标增20
 		g.drawString("LIFE:" + hero.getLife(), x, y); // 画命
+	}
+	
+	public void paintBoss1(Graphics g) {
+		if(score>=bScore && boss_.life>0)
+		{
+			int x = 10; // x坐标
+			int y = 25; // y坐标
+			Font font = new Font(Font.SANS_SERIF, Font.BOLD, 22);
+			g.setColor(new Color(0x00FFFF));
+			g.setFont(font);
+			g.drawString("BossLife:"+boss_.life, x, y+40);
+		}
+	}
+	
+	public void paintBoss2(Graphics g) {
+		if(score>=kScore && bossKING.life>0)
+		{
+			int x = 10; // x坐标
+			int y = 25; // y坐标
+			Font font = new Font(Font.SANS_SERIF, Font.BOLD, 22);
+			g.setColor(new Color(0x00FFFF));
+			g.setFont(font);
+			g.drawString("KingBossLife:"+bossKING.life, x, y+40);
+		}
 	}
 
 	/** 画游戏状态 */
@@ -134,7 +216,6 @@ public class ShootGame extends JPanel {
 		frame.setIconImage(new ImageIcon("images/icon.jpg").getImage()); // 设置窗体的图标
 		frame.setLocationRelativeTo(null); // 设置窗体初始位置
 		frame.setVisible(true); // 尽快调用paint
-
 		game.action(); // 启动执行
 	}
 
@@ -176,6 +257,9 @@ public class ShootGame extends JPanel {
 					bullets = new Bullet[0]; // 清空子弹
 					hero = new Hero(); // 重新创建英雄机
 					score = 0; // 清空成绩
+					boss_.life = 500;
+					bossKING.life = 1000;
+					Arrays.fill(flag, 1);
 					state = START; // 状态设置为启动
 					break;
 				}
@@ -189,6 +273,9 @@ public class ShootGame extends JPanel {
 			@Override
 			public void run() {
 				if (state == RUNNING) { // 运行状态
+					Become();
+					bossAction();
+					bossKingAction();
 					enterAction(); // 飞行物入场
 					stepAction(); // 走一步
 					shootAction(); // 英雄机射击
@@ -207,10 +294,53 @@ public class ShootGame extends JPanel {
 	/** 飞行物入场 */
 	public void enterAction() {
 		flyEnteredIndex++;
-		if (flyEnteredIndex % 40 == 0) { // 400毫秒生成一个飞行物--10*40
+		if( score>=bScore && boss_.life >0 && flyEnteredIndex % 30 == 0) { // 400毫秒生成一个飞行物--10*40
 			FlyingObject obj = nextOne(); // 随机生成一个飞行物
 			flyings = Arrays.copyOf(flyings, flyings.length + 1);
 			flyings[flyings.length - 1] = obj;
+		}
+		else if (score>=kScore && bossKING.life > 0 && flyEnteredIndex % 30 == 0) {
+			FlyingObject obj = nextOne(); // 随机生成一个飞行物
+			flyings = Arrays.copyOf(flyings, flyings.length + 1);
+			flyings[flyings.length - 1] = obj;
+		}
+		else if (flyEnteredIndex % 10 ==0)
+		{
+			FlyingObject obj = nextOne(); // 随机生成一个飞行物
+			flyings = Arrays.copyOf(flyings, flyings.length + 1);
+			flyings[flyings.length - 1] = obj;
+		}
+	}
+
+	int bossShoot = 0;
+
+	public void bossAction() {
+		bossShoot++;
+		if (this.score >= bScore && boss_.life > 0 && bossShoot % 30 == 0) { // 300毫秒发一颗
+			FlyingObject obj[] = boss_.bossShoot();
+			flyings = Arrays.copyOf(flyings, flyings.length + obj.length); // 扩容
+			flyings[flyings.length - 3] = obj[0];
+			flyings[flyings.length - 2] = obj[1];
+			flyings[flyings.length - 1] = obj[2];
+		}
+	}
+	
+	int bossKingShoot = 0;
+	public void bossKingAction() {
+		bossKingShoot++;
+		if (this.score >= kScore && bossKING.life > 0 && bossKingShoot % 30 == 0) { // 300毫秒发一颗
+			FlyingObject obj[] = bossKING.bossShoot();
+			flyings = Arrays.copyOf(flyings, flyings.length + obj.length); // 扩容
+			flyings[flyings.length - 3] = obj[0];
+			flyings[flyings.length - 2] = obj[1];
+			flyings[flyings.length - 1] = obj[2];
+		}
+	}
+	
+	public void Become() {
+		if(score==bScore)
+		{
+			hero.HeroIndex = 1;
 		}
 	}
 
@@ -226,6 +356,8 @@ public class ShootGame extends JPanel {
 			b.step();
 		}
 		hero.step(); // 英雄机走一步
+		boss_.step();
+		bossKING.step();
 	}
 
 	/** 飞行物走一步 */
@@ -241,11 +373,10 @@ public class ShootGame extends JPanel {
 	/** 射击 */
 	public void shootAction() {
 		shootIndex++;
-		if (shootIndex % 30 == 0) { // 300毫秒发一颗
+		if (shootIndex % 10 == 0) { // 300毫秒发一颗
 			Bullet[] bs = hero.shoot(); // 英雄打出子弹
 			bullets = Arrays.copyOf(bullets, bullets.length + bs.length); // 扩容
-			System.arraycopy(bs, 0, bullets, bullets.length - bs.length,
-					bs.length); // 追加数组
+			System.arraycopy(bs, 0, bullets, bullets.length - bs.length, bs.length); // 追加数组
 		}
 	}
 
@@ -282,14 +413,14 @@ public class ShootGame extends JPanel {
 
 	/** 检查游戏结束 */
 	public void checkGameOverAction() {
-		if (isGameOver()==true) {
+		if (isGameOver() == true) {
 			state = GAME_OVER; // 改变状态
 		}
 	}
 
 	/** 检查游戏是否结束 */
 	public boolean isGameOver() {
-		
+
 		for (int i = 0; i < flyings.length; i++) {
 			int index = -1;
 			FlyingObject obj = flyings[i];
@@ -306,16 +437,18 @@ public class ShootGame extends JPanel {
 				flyings = Arrays.copyOf(flyings, flyings.length - 1); // 删除碰上的飞行物
 			}
 		}
-		
+
 		return hero.getLife() <= 0;
 	}
-
+	
 	/** 子弹和飞行物之间的碰撞检查 */
 	public void bang(Bullet bullet) {
 		int index = -1; // 击中的飞行物索引
 		for (int i = 0; i < flyings.length; i++) {
 			FlyingObject obj = flyings[i];
 			if (obj.shootBy(bullet)) { // 判断是否击中
+				bullet.setX(-10);
+				bullet.setY(-10);
 				index = i; // 记录被击中的飞行物的索引
 				break;
 			}
@@ -335,16 +468,32 @@ public class ShootGame extends JPanel {
 				score += e.getScore(); // 加分
 			} else { // 若为奖励，设置奖励
 				Award a = (Award) one;
-				int type = a.getType(); // 获取奖励类型
-				switch (type) {
-				case Award.DOUBLE_FIRE:
-					hero.addDoubleFire(); // 设置双倍火力
-					break;
-				case Award.LIFE:
-					hero.addLife(); // 设置加命
-					break;
+				int type = a.getType(); // 获取奖励类型 
+					type = Award.DOUBLE_FIRE;
+					switch (type) {
+					case Award.DOUBLE_FIRE:
+						hero.addDoubleFire(); // 设置双倍火力
+						break;
+					case Award.LIFE:
+						hero.addLife(); // 设置加命
+						break;
+					}
 				}
+			if(score>=bScore)
+			{
+				hero.addDoubleFire();
 			}
+				
+		}
+		if (this.score >= bScore && boss_.life > 0 && boss_.shootBy(bullet)) {
+			bullet.setX(-10);
+			bullet.setY(-10);
+			boss_.life--;
+		}
+		if (this.score >= kScore && bossKING.life > 0 && bossKING.shootBy(bullet)) {
+			bullet.setX(-10);
+			bullet.setY(-10);
+			bossKING.life--;
 		}
 	}
 
@@ -356,7 +505,7 @@ public class ShootGame extends JPanel {
 	public static FlyingObject nextOne() {
 		Random random = new Random();
 		int type = random.nextInt(20); // [0,20)
-		if (type < 4) {
+		if (type < 1) {
 			return new Bee();
 		} else {
 			return new Airplane();

@@ -7,6 +7,7 @@ import java.util.Random;
  */
 public class Airplane extends FlyingObject implements Enemy {
 	private int speed = 3;  //移动步骤
+	public int airplaneIndex = 1;
 	
 	/** 初始化数据 */
 	public Airplane(){
@@ -16,6 +17,14 @@ public class Airplane extends FlyingObject implements Enemy {
 		y = -height;          
 		Random rand = new Random();
 		x = rand.nextInt(ShootGame.WIDTH - width);
+	}
+	
+	public Airplane(int xx,int yy){
+		this.image = ShootGame.bossShots;
+		width = image.getWidth();
+		height = image.getHeight();
+		y = yy;
+		x = xx;
 	}
 	
 	/** 获取分数 */
@@ -29,11 +38,15 @@ public class Airplane extends FlyingObject implements Enemy {
 	public 	boolean outOfBounds() {   
 		return y>ShootGame.HEIGHT;
 	}
+	
+	public void setAirplaneIndex(int airplaneIndex) {
+		this.airplaneIndex = airplaneIndex;
+	}
 
 	/** 移动 */
 	@Override
 	public void step() {   
-		y += speed;
+		y += airplaneIndex*speed;
 	}
 
 }

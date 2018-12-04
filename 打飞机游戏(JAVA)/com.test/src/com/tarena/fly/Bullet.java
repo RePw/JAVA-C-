@@ -1,5 +1,7 @@
 package com.tarena.fly;
 
+import java.awt.image.BufferedImage;
+
 /**
  * 子弹类:是飞行物
  */
@@ -12,11 +14,16 @@ public class Bullet extends FlyingObject {
 		this.y = y;
 		this.image = ShootGame.bullet;
 	}
+	public Bullet(int x,int y,BufferedImage xBufferedImage){
+		this.x = x;
+		this.y = y;
+		this.image = xBufferedImage;
+	}
 
 	/** 移动 */
 	@Override
 	public void step(){   
-		y-=2*speed;
+		y-=4*speed;
 	}
 
 	/** 越界处理 */
